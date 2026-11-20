@@ -13,6 +13,7 @@ import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.router.LanguageModelQueryRouter;
 import dev.langchain4j.rag.query.router.QueryRouter;
+import dev.langchain4j.rag.query.transformer.CompressingQueryTransformer;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
 import jakarta.annotation.PostConstruct;
@@ -42,7 +43,9 @@ public class LlmClient implements Serializable {
 
     @PostConstruct
     public void initialiser() {
-        LOGGER.warning("DIAGNOSTIC - Initialisation LlmClient version 2");
+        LOGGER.warning(
+                "DIAGNOSTIC - Initialisation avec transformation et routage"
+        );
 
         String cle = System.getenv("GEMINI_KEY");
 
@@ -78,7 +81,7 @@ public class LlmClient implements Serializable {
                 new LanguageModelQueryRouter(modeleRoutage, sources);
 
         QueryRouter routeur = query -> {
-            // Niveau WARNING temporaire pour vérifier le routage.
+            // Affiche la question après transformation.
             LOGGER.warning(
                     "DIAGNOSTIC - Question pour le routage : " + query.text()
             );
@@ -106,7 +109,12 @@ public class LlmClient implements Serializable {
             return selection;
         };
 
+        // Utilise l'historique pour rendre la question autonome.
+        CompressingQueryTransformer transformateur =
+                new CompressingQueryTransformer(modeleRoutage);
+
         RetrievalAugmentor augmentateur = DefaultRetrievalAugmentor.builder()
+                .queryTransformer(transformateur)
                 .queryRouter(routeur)
                 .build();
 
